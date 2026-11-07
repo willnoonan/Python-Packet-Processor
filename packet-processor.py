@@ -20,7 +20,6 @@ class Packet:
 class ProcessPacket:
     def __init__(self):
         self.packet_map = dict()  # {msg_id: list[Packet]}
-        self.meta = dict()  # {msg_id: total_packets}
 
     def process_packet(self, packet: Packet):
 
@@ -38,34 +37,30 @@ class ProcessPacket:
         if packet.sequence + 1 > packet.total_packets:
             raise ValueError("packet's sequence index cannot exceed that allowed by its total_packets")
 
-        # if msg_id never seen before, initialize list for it, store its total_packets in meta
+        # if msg_id never seen before, initialize list for it
         if msg_id not in self.packet_map:
             self.packet_map[msg_id] = [None] * packet.total_packets
-            self.meta[msg_id] = packet.total_packets
 
         # what happens if new packet has different length than seen previously
-        # if new packet's total packets is less than what's in meta, reject
-        if packet.total_packets < self.meta[msg_id]:
+        # policy: if new packet's total_packets is less than current list size, reject
+        if packet.total_packets < len(self.packet_map[msg_id]):
             raise ValueError(f"total_packets cannot be less than that seen previously for message_id={packet.message_id}")
 
-        # if it's longer, allow it to update packet_map and meta info
-        if packet.total_packets > self.meta[msg_id]:
-            self.packet_map[msg_id].extend([None] * (packet.total_packets - self.meta[msg_id]))
-            # update meta
-            self.meta[msg_id] = packet.total_packets
+        # policy: if it's longer, allow it to extend packet_map list
+        if packet.total_packets > len(self.packet_map[msg_id]):
+            self.packet_map[msg_id].extend([None] * (packet.total_packets - len(self.packet_map[msg_id])))
 
         # put it in the dict
         # first check if this packet would overwrite
         if self.packet_map[msg_id][packet.sequence] is not None:
-            pass  # todo consider rejecting overwrites
+            pass  # todo policy: consider rejecting overwrites
 
         self.packet_map[msg_id][packet.sequence] = packet.payload
 
         # determine if full payload can be returned
         if not None in self.packet_map[msg_id]:
-            # todo consider not wiping msg_id from the dicts
+            # todo policy: consider not wiping msg_id
             res = " ".join(p for p in self.packet_map.pop(msg_id))
-            self.meta.pop(msg_id)
             return res
 
         return None
