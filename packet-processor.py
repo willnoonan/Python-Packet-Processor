@@ -31,11 +31,11 @@ class ProcessPacket:
         if packet.sequence < 0:
             raise ValueError("invalid sequence")
 
-        if type(packet.payload) is not str:
-            raise ValueError("invalid payload, must be a string")
-
         if packet.sequence + 1 > packet.total_packets:
             raise ValueError("packet's sequence index cannot exceed that allowed by its total_packets")
+
+        if type(packet.payload) is not str:
+            raise TypeError("invalid payload, must be a string")
 
         # if msg_id never seen before, initialize list for it
         if msg_id not in self.packet_map:
@@ -50,11 +50,11 @@ class ProcessPacket:
         if packet.total_packets > len(self.packet_map[msg_id]):
             self.packet_map[msg_id].extend([None] * (packet.total_packets - len(self.packet_map[msg_id])))
 
-        # put it in the dict
-        # first check if this packet would overwrite
+        # before inserting packet, check if it would overwrite
         if self.packet_map[msg_id][packet.sequence] is not None:
-            pass  # todo policy: consider rejecting overwrites
+            pass  # todo policy: consider rejecting overwrites (raise error)
 
+        # insert payload
         self.packet_map[msg_id][packet.sequence] = packet.payload
 
         # determine if full payload can be returned
@@ -71,15 +71,15 @@ def main():
 
     packets = [
         Packet(1, 1, 2, "world"),
-        Packet(1, 0, 0, "end"),
+        Packet(-1, 0, 1, "end"),
         Packet(1, 0, 4, None),
-        Packet(1, 3, 3, "water"),
+        Packet(0, 0, 0, "water"),
         Packet(1, 3, 4, "here"),
         Packet(0, -1, 3, "vehicle"),
         Packet(1, 0, 2, "hello"),
         Packet(1, 2, 4, "i'm"),
         Packet(1, 0, 4, "Hello"),
-        Packet(1, 0, 4, "planet"),
+        Packet(2, None, 3, "planet"),
     ]
 
     for p in packets:
@@ -88,8 +88,8 @@ def main():
             print(f"Accepted packet: {p}")
             if res:
                 print(f"Message completed for message_id={p.message_id}: {res}")
-        except ValueError as e:
-            print(f"Rejected packet: {p} -> ValueError: {e}")
+        except Exception as e:
+            print(f"Rejected packet: {p} -> {type(e).__name__}: {e}")
 
 
 if __name__ == '__main__':
