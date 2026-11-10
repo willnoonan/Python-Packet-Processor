@@ -29,7 +29,7 @@ class ProcessPacket:
             raise ValueError("invalid message_id")
 
         if packet.sequence < 0:
-            return ValueError("invalid sequence")
+            raise ValueError("invalid sequence")
 
         if type(packet.payload) is not str:
             raise ValueError("invalid payload, must be a string")
@@ -71,11 +71,11 @@ def main():
 
     packets = [
         Packet(1, 1, 2, "world"),
-        Packet(1, 2, 3, "end"),
+        Packet(1, 0, 0, "end"),
         Packet(1, 0, 4, None),
         Packet(1, 3, 3, "water"),
         Packet(1, 3, 4, "here"),
-        Packet(0, 2, 3, "vehicle"),
+        Packet(0, -1, 3, "vehicle"),
         Packet(1, 0, 2, "hello"),
         Packet(1, 2, 4, "i'm"),
         Packet(1, 0, 4, "Hello"),
